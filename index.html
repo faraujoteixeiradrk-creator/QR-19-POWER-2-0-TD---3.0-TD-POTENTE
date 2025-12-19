@@ -3400,6 +3400,91 @@
             }
         }
         
+        // NUEVA: Función para recalcular energyCosts y powerCosts correctamente
+        function recalculateCostsForOffer(baseData, selectedOffer) {
+            const tariffType = baseData.originalTariffType;
+            const recalculatedEnergyCosts = [];
+            const recalculatedPowerCosts = [];
+            
+            console.log('Recalculating costs for tariff type:', tariffType);
+            
+            if (tariffType === '2.0TD') {
+                // Calcular energía para 2.0TD (3 periodos)
+                const consumos = [
+                    baseData.consumo_punta || 0,
+                    baseData.consumo_llano || 0,
+                    baseData.consumo_valle || 0
+                ];
+                const preciosEnergia = [
+                    selectedOffer.p1_price || 0,
+                    selectedOffer.p2_price || 0,
+                    selectedOffer.p3_price || 0
+                ];
+                
+                for (let i = 0; i < 3; i++) {
+                    recalculatedEnergyCosts.push({
+                        period: i + 1,
+                        kwh: consumos[i],
+                        price: preciosEnergia[i],
+                        cost: consumos[i] * preciosEnergia[i]
+                    });
+                }
+                
+                // Calcular potencia para 2.0TD (2 periodos)
+                const potencias = [
+                    baseData.potencia_p1_kw || 0,
+                    baseData.potencia_p2_kw || 0
+                ];
+                const preciosPotencia = [
+                    (selectedOffer.p_potencia_1 || 0) / 365,
+                    (selectedOffer.p_potencia_2 || 0) / 365
+                ];
+                const diasFacturados = baseData.dias_facturados || 30;
+                
+                for (let i = 0; i < 2; i++) {
+                    recalculatedPowerCosts.push({
+                        period: i + 1,
+                        kw: potencias[i],
+                        priceDay: preciosPotencia[i],
+                        cost: potencias[i] * preciosPotencia[i] * diasFacturados
+                    });
+                }
+            } else if (tariffType === '3.0TD') {
+                // Calcular energía para 3.0TD (6 periodos)
+                for (let i = 1; i <= 6; i++) {
+                    const kwh = baseData[`consumo_p${i}`] || 0;
+                    const price = selectedOffer[`p${i}_price`] || 0;
+                    recalculatedEnergyCosts.push({
+                        period: i,
+                        kwh: kwh,
+                        price: price,
+                        cost: kwh * price
+                    });
+                }
+                
+                // Calcular potencia para 3.0TD (6 periodos)
+                const diasFacturados = baseData.dias_facturados || 30;
+                for (let i = 1; i <= 6; i++) {
+                    const kw = baseData[`potencia_p${i}_kw`] || 0;
+                    const priceDay = (selectedOffer[`p_potencia_${i}`] || 0) / 365;
+                    recalculatedPowerCosts.push({
+                        period: i,
+                        kw: kw,
+                        priceDay: priceDay,
+                        cost: kw * priceDay * diasFacturados
+                    });
+                }
+            }
+            
+            console.log('Recalculated energy costs periods:', recalculatedEnergyCosts.length);
+            console.log('Recalculated power costs periods:', recalculatedPowerCosts.length);
+            
+            return {
+                energyCosts: recalculatedEnergyCosts,
+                powerCosts: recalculatedPowerCosts
+            };
+        }
+        
         // Nueva función para añadir suministro a MultiCups después de elegir
         function addSupplyToMultiCupsList(result) {
             console.log('addSupplyToMultiCupsList called with result:', result);
@@ -3410,6 +3495,14 @@
             if (!result.originalTariffType && result._multiCupsContext) {
                 result.originalTariffType = result._multiCupsContext.tariffType;
                 console.log('Set originalTariffType from context:', result.originalTariffType);
+            }
+            
+            // IMPORTANTE: Recalcular costes para asegurar que 3.0TD tenga 6 periodos
+            if (result.offer && result.originalTariffType) {
+                const recalculated = recalculateCostsForOffer(result, result.offer);
+                result.energyCosts = recalculated.energyCosts;
+                result.powerCosts = recalculated.powerCosts;
+                console.log('Costs recalculated for', result.originalTariffType);
             }
             
             // Limpiar el contexto temporal
@@ -3614,85 +3707,9 @@
                 // Contexto MultiCups: Necesitamos TODOS los datos de lastComparisonResult
                 // pero con la OFERTA seleccionada manualmente
                 console.log('MultiCups context detected');
-                console.log('lastComparisonResult tariffType:', lastComparisonResult._multiCupsContext.tariffType);
-                console.log('Selected offer:', result.offer);
                 
-                const tariffType = lastComparisonResult._multiCupsContext.tariffType;
-                const tariffConfig = TARIFF_CONFIG[tariffType];
-                
-                // IMPORTANTE: Recalcular energyCosts y powerCosts usando la oferta elegida
-                // con los datos de consumo/potencia reales del lastComparisonResult
-                
-                const recalculatedEnergyCosts = [];
-                const recalculatedPowerCosts = [];
-                
-                if (tariffType === '2.0TD') {
-                    // Calcular energía para 2.0TD (3 periodos)
-                    const consumos = [
-                        lastComparisonResult.consumo_punta || 0,
-                        lastComparisonResult.consumo_llano || 0,
-                        lastComparisonResult.consumo_valle || 0
-                    ];
-                    const preciosEnergia = [
-                        result.offer.p1_price || 0,
-                        result.offer.p2_price || 0,
-                        result.offer.p3_price || 0
-                    ];
-                    
-                    for (let i = 0; i < 3; i++) {
-                        recalculatedEnergyCosts.push({
-                            period: i + 1,
-                            kwh: consumos[i],
-                            price: preciosEnergia[i],
-                            cost: consumos[i] * preciosEnergia[i]
-                        });
-                    }
-                    
-                    // Calcular potencia para 2.0TD (2 periodos)
-                    const potencias = [
-                        lastComparisonResult.potencia_p1_kw || 0,
-                        lastComparisonResult.potencia_p2_kw || 0
-                    ];
-                    const preciosPotencia = [
-                        (result.offer.p_potencia_1 || 0) / 365,
-                        (result.offer.p_potencia_2 || 0) / 365
-                    ];
-                    const diasFacturados = lastComparisonResult.dias_facturados || 30;
-                    
-                    for (let i = 0; i < 2; i++) {
-                        recalculatedPowerCosts.push({
-                            period: i + 1,
-                            kw: potencias[i],
-                            priceDay: preciosPotencia[i],
-                            cost: potencias[i] * preciosPotencia[i] * diasFacturados
-                        });
-                    }
-                } else if (tariffType === '3.0TD') {
-                    // Calcular energía para 3.0TD (6 periodos)
-                    for (let i = 1; i <= 6; i++) {
-                        const kwh = lastComparisonResult[`consumo_p${i}`] || 0;
-                        const price = result.offer[`p${i}_price`] || 0;
-                        recalculatedEnergyCosts.push({
-                            period: i,
-                            kwh: kwh,
-                            price: price,
-                            cost: kwh * price
-                        });
-                    }
-                    
-                    // Calcular potencia para 3.0TD (6 periodos)
-                    const diasFacturados = lastComparisonResult.dias_facturados || 30;
-                    for (let i = 1; i <= 6; i++) {
-                        const kw = lastComparisonResult[`potencia_p${i}_kw`] || 0;
-                        const priceDay = (result.offer[`p_potencia_${i}`] || 0) / 365;
-                        recalculatedPowerCosts.push({
-                            period: i,
-                            kw: kw,
-                            priceDay: priceDay,
-                            cost: kw * priceDay * diasFacturados
-                        });
-                    }
-                }
+                // Usar la función centralizada para recalcular costes
+                const recalculated = recalculateCostsForOffer(lastComparisonResult, result.offer);
                 
                 // Crear un nuevo objeto combinando lastComparisonResult (datos base) 
                 // con la oferta elegida manualmente y los costes recalculados
@@ -3702,24 +3719,12 @@
                     totalAnnual: result.totalAnnual,  // Coste anual de la oferta elegida
                     totalPeriod: result.totalPeriod,  // Coste periodo de la oferta elegida
                     savings: result.savings,          // Ahorro de la oferta elegida
-                    energyCosts: recalculatedEnergyCosts,  // Desglose RECALCULADO de energía
-                    powerCosts: recalculatedPowerCosts,    // Desglose RECALCULADO de potencia
+                    energyCosts: recalculated.energyCosts,  // Desglose RECALCULADO de energía
+                    powerCosts: recalculated.powerCosts,    // Desglose RECALCULADO de potencia
                     subPower: result.subPower,
                     subEnergyNet: result.subEnergyNet,
                     isNegativeSavings: result.isNegativeSavings || false
                 };
-                
-                // Para 3.0TD, asegurar que los consumos p1-p6 están copiados
-                if (tariffType === '3.0TD') {
-                    for (let i = 1; i <= 6; i++) {
-                        if (lastComparisonResult[`consumo_p${i}`] !== undefined) {
-                            combinedResult[`consumo_p${i}`] = lastComparisonResult[`consumo_p${i}`];
-                        }
-                        if (lastComparisonResult[`potencia_p${i}_kw`] !== undefined) {
-                            combinedResult[`potencia_p${i}_kw`] = lastComparisonResult[`potencia_p${i}_kw`];
-                        }
-                    }
-                }
                 
                 console.log('Combined result with recalculated costs:', combinedResult);
                 console.log('Energy costs periods:', combinedResult.energyCosts.length);
