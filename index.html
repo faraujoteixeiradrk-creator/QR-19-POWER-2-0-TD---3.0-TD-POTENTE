@@ -1356,6 +1356,13 @@
                 console.log('Best overall:', bestOverall.offer.name, bestOverall.totalAnnual);
                 console.log('Best DRK:', bestDrk ? bestDrk.offer.name : 'None', bestDrk ? bestDrk.totalAnnual : 0);
                 
+                // --- GUARDAR OFERTAS CON AHORRO POSITIVO ---
+                availableOffers = results.filter(r => {
+                    r.savings = r.originalBillAnnual - r.totalAnnual;
+                    return r.savings > 0 && r.totalAnnual < r.originalBillAnnual;
+                });
+                console.log('Available offers with savings:', availableOffers.length);
+                
                 let final = bestOverall;
                 let brand = activeBrand;
 
@@ -1424,14 +1431,18 @@
                 lastComparisonResult.isMulti = false;
                 
                 console.log('Checking available offers...');
+                console.log('availableOffers.length:', availableOffers.length);
+                console.log('final.savings:', final.savings);
                 
                 // NUEVA LÓGICA: Si hay ofertas con ahorro, mostrar modal de decisión
-                if (availableOffers.length > 0 && final.savings > 0) {
+                // Solo mostrar si hay más de 1 oferta con ahorro (para poder elegir)
+                if (availableOffers.length > 1) {
+                    console.log('Showing decision modal with', availableOffers.length, 'offers');
                     showOfferDecisionModal();
                     return; // No mostrar resultados todavía, esperar decisión del usuario
                 }
                 
-                // Si no hay ahorro, mostrar resultados directamente
+                // Si solo hay 1 oferta o ninguna, mostrar resultados directamente
                 console.log('About to render UI...');
                 renderResultsUI(final);
                 
