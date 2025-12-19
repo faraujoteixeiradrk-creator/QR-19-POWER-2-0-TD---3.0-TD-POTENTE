@@ -1638,6 +1638,18 @@
         function compareMultiOffers() {
             if (multiCupsData.length === 0) return window.showErrorModal("No hay suministros para comparar.");
             
+            console.log('=== DIAGNÓSTICO AHORRO CONSOLIDADO ===');
+            console.log('Total CUPS:', multiCupsData.length);
+            
+            // Mostrar datos de cada CUPS antes de la suma
+            multiCupsData.forEach((cups, idx) => {
+                console.log(`CUPS ${idx + 1}:`, cups.cups);
+                console.log(`  - Original Annual: ${cups.originalBillAnnual}`);
+                console.log(`  - Total Annual: ${cups.totalAnnual}`);
+                console.log(`  - Savings: ${cups.savings}`);
+                console.log(`  - Diferencia calculada: ${cups.originalBillAnnual - cups.totalAnnual}`);
+            });
+            
             // 1. Acumular Totales y Consumos
             const total = multiCupsData.reduce((acc, current) => {
                 // current.totalAnnual ya contiene el costo de la tarifa "ganadora" (que puede ser la actual si no hay ahorro)
@@ -1690,6 +1702,11 @@
 
             // 2. Calcular Ahorro Final Consolidado
             total.savings = total.originalBillAnnual - total.totalAnnual;
+            
+            console.log('=== TOTALES ACUMULADOS ===');
+            console.log('Total originalBillAnnual:', total.originalBillAnnual);
+            console.log('Total totalAnnual:', total.totalAnnual);
+            console.log('Total savings calculado:', total.savings);
 
             // 3. Determinar la Oferta de Referencia para el resumen
             let bestOverallWinner = multiCupsData.reduce((best, current) => {
