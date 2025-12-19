@@ -1390,16 +1390,18 @@
                     // Modos DRK (drk_only, drk_prioritized)
                     if (comparisonMode === 'drk_only') {
                         final = bestDrk || bestOverall;
+                        // DRK ÚNICAMENTE: SIEMPRE mantener branding DRK (azul)
+                        brand = BRANDS.DRK;
                     } else if (comparisonMode === 'drk_prioritized') {
                         // Usar DRK si tiene ahorro, sino usar la mejor absoluta
                         final = (bestDrk && bestDrk.totalAnnual < bestDrk.originalBillAnnual) ? bestDrk : bestOverall;
-                    }
-
-                    // Aplicar branding según quién ganó
-                    if (final.savings > 0 && !final.offer.isDrk) {
-                        brand = BRANDS.POWER_CUP;
-                    } else {
-                        brand = BRANDS.DRK;
+                        
+                        // DRK PRIORITARIO: Solo cambiar a POWER_CUP si ganó una comercializadora NO-DRK
+                        if (final.offer.isDrk) {
+                            brand = BRANDS.DRK;
+                        } else {
+                            brand = BRANDS.POWER_CUP;
+                        }
                     }
                 }
                 
@@ -3877,16 +3879,18 @@
                     // Modos DRK (drk_only, drk_prioritized)
                     if (comparisonMode === 'drk_only') {
                         finalIndividualResult = bestDrk || bestOverall;
+                        // DRK ÚNICAMENTE: SIEMPRE mantener branding DRK (azul)
+                        brand = BRANDS.DRK;
                     } else if (comparisonMode === 'drk_prioritized') {
                         // Usar DRK si tiene ahorro, sino usar la mejor absoluta
                         finalIndividualResult = (bestDrk && bestDrk.totalAnnual < bestDrk.originalBillAnnual) ? bestDrk : bestOverall;
-                    }
-
-                    // Aplicar branding según quién ganó
-                    if (finalIndividualResult.savings > 0 && !finalIndividualResult.offer.isDrk) {
-                        brand = BRANDS.POWER_CUP;
-                    } else {
-                        brand = BRANDS.DRK;
+                        
+                        // DRK PRIORITARIO: Solo cambiar a POWER_CUP si ganó una comercializadora NO-DRK
+                        if (finalIndividualResult.offer.isDrk) {
+                            brand = BRANDS.DRK;
+                        } else {
+                            brand = BRANDS.POWER_CUP;
+                        }
                     }
                 }
             }
