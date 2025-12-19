@@ -3299,16 +3299,27 @@
         
         // Nueva función para añadir suministro a MultiCups después de elegir
         function addSupplyToMultiCupsList(result) {
+            console.log('addSupplyToMultiCupsList called with result:', result);
+            console.log('Result offer:', result.offer);
+            console.log('Result originalTariffType:', result.originalTariffType);
+            
+            // Asegurar que el originalTariffType esté presente
+            if (!result.originalTariffType && result._multiCupsContext) {
+                result.originalTariffType = result._multiCupsContext.tariffType;
+                console.log('Set originalTariffType from context:', result.originalTariffType);
+            }
+            
             // Limpiar el contexto temporal
             delete result._multiCupsContext;
             
             // Añadir a la lista
             multiCupsData.push(result);
+            console.log('multiCupsData after push:', multiCupsData);
             
             // Actualizar UI y volver a la vista SAGA
             document.getElementById('tariff-display-badge').textContent = multiCupsData.length;
             
-            window.showMessageModal(`Suministro ${result.cups} añadido. Total: ${multiCupsData.length}`, "Suministro Añadido");
+            window.showMessageModal(`Suministro ${result.cups} (${result.offer.name}) añadido. Total: ${multiCupsData.length}`, "Suministro Añadido");
             
             document.getElementById('initial-view').classList.add('hidden');
             showMultiCupsSagaView();
