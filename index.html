@@ -4133,10 +4133,10 @@
                 }
             }
             
-            // --- NUEVA LÓGICA: Modal de decisión en POWER CUP MultiCups ---
-            // Si es modo POWER CUP y hay más de 1 oferta, permitir elegir
-            if (comparisonMode === 'overall_best' && availableOffers.length > 1) {
-                console.log('POWER CUP MultiCups: Showing decision modal with', availableOffers.length, 'offers');
+            // --- NUEVA LÓGICA: Modal de decisión en MultiCups (TODOS LOS MODOS) ---
+            // Si hay más de 1 oferta con ahorro, permitir elegir (en cualquier modo)
+            if (availableOffers.length > 1) {
+                console.log('MultiCups (' + comparisonMode + '): Showing decision modal with', availableOffers.length, 'offers');
                 
                 // Guardar temporalmente el resultado para usarlo después
                 lastComparisonResult = finalIndividualResult;
@@ -4151,7 +4151,7 @@
                 return; // No añadir todavía, esperar decisión del usuario
             }
             
-            // Añadir directamente si NO es POWER CUP o solo hay 1 oferta
+            // Añadir directamente si solo hay 1 oferta o ninguna
             multiCupsData.push(finalIndividualResult);
             
             // Actualizar UI y volver a la vista SAGA
