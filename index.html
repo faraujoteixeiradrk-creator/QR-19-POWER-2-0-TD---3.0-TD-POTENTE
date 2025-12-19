@@ -3458,10 +3458,57 @@
             } else if (tariffType === '3.0TD') {
                 console.log('=== 3.0TD DETAILED DEBUG ===');
                 
+                // IMPORTANTE: Algunas tarifas 3.0TD solo tienen 3 precios definidos
+                // Necesitamos propagar los precios existentes a los 6 periodos
+                
+                // Detectar si la tarifa tiene 6 precios o solo 3
+                const hasFull6Periods = selectedOffer.p4_price !== undefined && selectedOffer.p4_price > 0;
+                
+                let prices = [];
+                if (hasFull6Periods) {
+                    // Tarifa con 6 periodos completos
+                    prices = [
+                        selectedOffer.p1_price || 0,
+                        selectedOffer.p2_price || 0,
+                        selectedOffer.p3_price || 0,
+                        selectedOffer.p4_price || 0,
+                        selectedOffer.p5_price || 0,
+                        selectedOffer.p6_price || 0
+                    ];
+                } else {
+                    // Tarifa con solo 3 precios: propagar P1->P1/P4, P2->P2/P5, P3->P3/P6
+                    const p1 = selectedOffer.p1_price || 0;
+                    const p2 = selectedOffer.p2_price || 0;
+                    const p3 = selectedOffer.p3_price || 0;
+                    prices = [p1, p2, p3, p1, p2, p3];  // Duplicar los 3 primeros
+                    console.log('3.0TD tariff has only 3 periods, propagating prices:', prices);
+                }
+                
+                // Detectar si la tarifa tiene 6 precios de potencia o solo 2
+                const hasFull6PowerPrices = selectedOffer.p_potencia_3 !== undefined && selectedOffer.p_potencia_3 > 0;
+                
+                let powerPrices = [];
+                if (hasFull6PowerPrices) {
+                    powerPrices = [
+                        (selectedOffer.p_potencia_1 || 0) / 365,
+                        (selectedOffer.p_potencia_2 || 0) / 365,
+                        (selectedOffer.p_potencia_3 || 0) / 365,
+                        (selectedOffer.p_potencia_4 || 0) / 365,
+                        (selectedOffer.p_potencia_5 || 0) / 365,
+                        (selectedOffer.p_potencia_6 || 0) / 365
+                    ];
+                } else {
+                    // Solo tiene P1 y P2: propagar P1->P1/P3/P5, P2->P2/P4/P6
+                    const p1 = (selectedOffer.p_potencia_1 || 0) / 365;
+                    const p2 = (selectedOffer.p_potencia_2 || 0) / 365;
+                    powerPrices = [p1, p2, p1, p2, p1, p2];
+                    console.log('3.0TD tariff has only 2 power prices, propagating:', powerPrices);
+                }
+                
                 // Calcular energía para 3.0TD (6 periodos)
                 for (let i = 1; i <= 6; i++) {
                     const kwh = baseData[`consumo_p${i}`] || 0;
-                    const price = selectedOffer[`p${i}_price`] || 0;
+                    const price = prices[i - 1];
                     console.log(`Period ${i}: kwh=${kwh}, price=${price}`);
                     recalculatedEnergyCosts.push({
                         period: i,
@@ -3477,7 +3524,7 @@
                 
                 for (let i = 1; i <= 6; i++) {
                     const kw = baseData[`potencia_p${i}_kw`] || 0;
-                    const priceDay = (selectedOffer[`p_potencia_${i}`] || 0) / 365;
+                    const priceDay = powerPrices[i - 1];
                     console.log(`Power P${i}: kw=${kw}, priceDay=${priceDay}`);
                     recalculatedPowerCosts.push({
                         period: i,
