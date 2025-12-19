@@ -3415,9 +3415,10 @@
         function continueWithSelectedOffer() {
             console.log('continueWithSelectedOffer called');
             console.log('manuallySelectedOffer:', manuallySelectedOffer);
+            console.log('lastComparisonResult:', lastComparisonResult);
             
-            // Usar la oferta seleccionada manualmente y mostrar resultados
-            const result = manuallySelectedOffer;
+            // Usar la oferta seleccionada manualmente
+            let result = manuallySelectedOffer;
             
             if (!result) {
                 console.error('No result available!');
@@ -3427,19 +3428,31 @@
             console.log('Result offer:', result.offer.name);
             
             // Verificar si estamos en contexto MultiCups
-            const isMultiCupsContext = result._multiCupsContext || (lastComparisonResult && lastComparisonResult._multiCupsContext);
+            const isMultiCupsContext = lastComparisonResult && lastComparisonResult._multiCupsContext;
             
             if (isMultiCupsContext) {
-                // Contexto MultiCups: Añadir a la lista
-                console.log('MultiCups context detected, adding to list');
+                // Contexto MultiCups: Necesitamos TODOS los datos de lastComparisonResult
+                // pero con la OFERTA seleccionada manualmente
+                console.log('MultiCups context detected');
                 
-                // Si result no tiene el contexto pero lastComparisonResult sí, copiarlo
-                if (!result._multiCupsContext && lastComparisonResult._multiCupsContext) {
-                    result._multiCupsContext = lastComparisonResult._multiCupsContext;
-                    result.originalTariffType = lastComparisonResult._multiCupsContext.tariffType;
-                }
+                // Crear un nuevo objeto combinando lastComparisonResult (datos base) 
+                // con la oferta elegida manualmente
+                const combinedResult = {
+                    ...lastComparisonResult,  // Todos los datos base (CUPS, consumos, potencias, etc.)
+                    offer: result.offer,      // La oferta elegida manualmente
+                    totalAnnual: result.totalAnnual,  // Coste anual de la oferta elegida
+                    totalPeriod: result.totalPeriod,  // Coste periodo de la oferta elegida
+                    savings: result.savings,          // Ahorro de la oferta elegida
+                    energyCosts: result.energyCosts,  // Desglose de energía
+                    powerCosts: result.powerCosts,    // Desglose de potencia
+                    subPower: result.subPower,
+                    subEnergyNet: result.subEnergyNet,
+                    isNegativeSavings: result.isNegativeSavings || false
+                };
                 
-                addSupplyToMultiCupsList(result);
+                console.log('Combined result:', combinedResult);
+                
+                addSupplyToMultiCupsList(combinedResult);
             } else {
                 // Contexto individual: Mostrar resultados
                 console.log('Individual context, showing results');
