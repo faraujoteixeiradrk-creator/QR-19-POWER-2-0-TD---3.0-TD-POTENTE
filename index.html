@@ -1442,16 +1442,19 @@
                 console.log('Checking available offers...');
                 console.log('availableOffers.length:', availableOffers.length);
                 console.log('final.savings:', final.savings);
+                console.log('currentTariffType:', currentTariffType);
                 
                 // NUEVA LÓGICA: Si hay ofertas con ahorro, mostrar modal de decisión
-                // Solo mostrar si hay más de 1 oferta con ahorro (para poder elegir)
-                if (availableOffers.length > 1) {
+                // PERO SOLO en modo individual, NO en MultiCups
+                const isMultiCupsMode = currentTariffType === 'MULTICUPS';
+                
+                if (!isMultiCupsMode && availableOffers.length > 1) {
                     console.log('Showing decision modal with', availableOffers.length, 'offers');
                     showOfferDecisionModal();
                     return; // No mostrar resultados todavía, esperar decisión del usuario
                 }
                 
-                // Si solo hay 1 oferta o ninguna, mostrar resultados directamente
+                // Si es MultiCups, solo hay 1 oferta, o ninguna, mostrar resultados directamente
                 console.log('About to render UI...');
                 renderResultsUI(final);
                 
