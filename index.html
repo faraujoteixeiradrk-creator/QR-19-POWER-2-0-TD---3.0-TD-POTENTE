@@ -3392,20 +3392,93 @@
             // Mostrar CUPS en el modal
             document.getElementById('modal-selection-cups').textContent = cups;
             
-            // Poblar lista de ofertas como radio buttons
+            // Inicializar contadores y limpiar filtros
+            document.getElementById('offers-total-count').textContent = availableOffers.length;
+            document.getElementById('offers-visible-count').textContent = availableOffers.length;
+            document.getElementById('offer-search-input').value = '';
+            document.getElementById('offer-sort-select').value = 'savings_desc';
+            
+            // Renderizar ofertas
+            renderOffersList();
+            
+            // Mostrar modal
+            document.getElementById('offer-selection-modal').classList.remove('hidden');
+            document.getElementById('offer-selection-modal').classList.add('flex');
+            
+            // Deshabilitar botón de confirmar inicialmente
+            document.getElementById('confirm-offer-selection-btn').disabled = true;
+            manuallySelectedOffer = null;
+        }
+        
+        // NUEVA: Función para renderizar la lista de ofertas
+        function renderOffersList() {
+            const searchTerm = document.getElementById('offer-search-input').value.toLowerCase();
+            const sortBy = document.getElementById('offer-sort-select').value;
+            
             const container = document.getElementById('offers-radio-list');
+            const noResultsMsg = document.getElementById('no-offers-message');
+            
+            // Filtrar ofertas
+            let filteredOffers = availableOffers.map((offer, originalIndex) => ({
+                offer: offer,
+                originalIndex: originalIndex
+            })).filter(item => {
+                if (searchTerm === '') return true;
+                
+                const offerName = item.offer.offer.name.toLowerCase();
+                const commercializer = item.offer.offer.isDrk ? 'drk energía' : (item.offer.offer.commercializer || '').toLowerCase();
+                const description = (item.offer.offer.description || '').toLowerCase();
+                
+                return offerName.includes(searchTerm) || 
+                       commercializer.includes(searchTerm) || 
+                       description.includes(searchTerm);
+            });
+            
+            // Ordenar ofertas filtradas
+            filteredOffers.sort((a, b) => {
+                switch(sortBy) {
+                    case 'savings_desc':
+                        return b.offer.savings - a.offer.savings;
+                    case 'savings_asc':
+                        return a.offer.savings - b.offer.savings;
+                    case 'name_asc':
+                        return a.offer.offer.name.localeCompare(b.offer.offer.name);
+                    case 'name_desc':
+                        return b.offer.offer.name.localeCompare(a.offer.offer.name);
+                    default:
+                        return 0;
+                }
+            });
+            
+            // Actualizar contador
+            document.getElementById('offers-visible-count').textContent = filteredOffers.length;
+            
+            // Limpiar contenedor
             container.innerHTML = '';
             
+            // Mostrar/ocultar mensaje de "no hay resultados"
+            if (filteredOffers.length === 0) {
+                noResultsMsg.classList.remove('hidden');
+                container.classList.add('hidden');
+                return;
+            } else {
+                noResultsMsg.classList.add('hidden');
+                container.classList.remove('hidden');
+            }
+            
+            // Renderizar ofertas
             const eur = (n) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(n || 0);
             
-            availableOffers.forEach((offer, index) => {
+            filteredOffers.forEach(item => {
+                const offer = item.offer;
+                const originalIndex = item.originalIndex;
                 const commercializer = offer.offer.isDrk ? 'DRK Energía' : (offer.offer.commercializer || 'Otra comercializadora');
                 const description = offer.offer.description || '';
                 
                 const offerCard = document.createElement('label');
                 offerCard.className = 'offer-radio-card block cursor-pointer';
                 offerCard.innerHTML = `
-                    <input type="radio" name="selected_offer" value="${index}" class="hidden">
+                    <input type="radio" name="selected_offer" value="${originalIndex}" class="hidden">
                     <div class="offer-card-content flex items-start gap-4 p-4 rounded-xl border-2 border-slate-300 bg-white transition hover:border-drk-400 hover:bg-drk-50">
                         <svg class="w-5 h-5 mt-0.5 flex-shrink-0 text-slate-400 checkmark-offer hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         <div class="flex-1">
@@ -3425,105 +3498,17 @@
             document.querySelectorAll('input[name="selected_offer"]').forEach(radio => {
                 radio.addEventListener('change', handleOfferRadioChange);
             });
-            
-            // Mostrar modal
-            document.getElementById('offer-selection-modal').classList.remove('hidden');
-            document.getElementById('offer-selection-modal').classList.add('flex');
-            
-            // Deshabilitar botón de confirmar inicialmente
-            document.getElementById('confirm-offer-selection-btn').disabled = true;
-            
-            // Inicializar contadores y limpiar filtros
-            document.getElementById('offers-total-count').textContent = availableOffers.length;
-            document.getElementById('offers-visible-count').textContent = availableOffers.length;
-            document.getElementById('offer-search-input').value = '';
-            document.getElementById('offer-sort-select').value = 'savings_desc';
         }
         
         // NUEVAS FUNCIONES: Filtrado y ordenación de ofertas
         function filterAndSortOffers() {
-            const searchTerm = document.getElementById('offer-search-input').value.toLowerCase();
-            const sortBy = document.getElementById('offer-sort-select').value;
-            
-            const container = document.getElementById('offers-radio-list');
-            const cards = Array.from(container.querySelectorAll('.offer-radio-card'));
-            const noResultsMsg = document.getElementById('no-offers-message');
-            
-            let visibleCount = 0;
-            
-            // Aplicar filtro y crear array con datos para ordenar
-            const cardData = cards.map((card, index) => {
-                const offer = availableOffers[index];
-                const offerName = offer.offer.name.toLowerCase();
-                const commercializer = offer.offer.isDrk ? 'drk energía' : (offer.offer.commercializer || '').toLowerCase();
-                const description = (offer.offer.description || '').toLowerCase();
-                
-                // Filtrar por búsqueda
-                const matchesSearch = searchTerm === '' || 
-                    offerName.includes(searchTerm) || 
-                    commercializer.includes(searchTerm) || 
-                    description.includes(searchTerm);
-                
-                if (matchesSearch) {
-                    visibleCount++;
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-                
-                return {
-                    card: card,
-                    offer: offer,
-                    visible: matchesSearch,
-                    index: index
-                };
-            });
-            
-            // Ordenar solo los visibles
-            const visibleCards = cardData.filter(item => item.visible);
-            visibleCards.sort((a, b) => {
-                switch(sortBy) {
-                    case 'savings_desc':
-                        return b.offer.savings - a.offer.savings;
-                    case 'savings_asc':
-                        return a.offer.savings - b.offer.savings;
-                    case 'name_asc':
-                        return a.offer.offer.name.localeCompare(b.offer.offer.name);
-                    case 'name_desc':
-                        return b.offer.offer.name.localeCompare(a.offer.offer.name);
-                    default:
-                        return 0;
-                }
-            });
-            
-            // Reorganizar el DOM
-            container.innerHTML = '';
-            visibleCards.forEach(item => {
-                container.appendChild(item.card);
-            });
-            
-            // Añadir las ocultas al final (sin mostrarlas)
-            cardData.filter(item => !item.visible).forEach(item => {
-                container.appendChild(item.card);
-            });
-            
-            // Actualizar contador
-            document.getElementById('offers-visible-count').textContent = visibleCount;
-            
-            // Mostrar/ocultar mensaje de "no hay resultados"
-            if (visibleCount === 0) {
-                noResultsMsg.classList.remove('hidden');
-                container.classList.add('hidden');
-            } else {
-                noResultsMsg.classList.add('hidden');
-                container.classList.remove('hidden');
-            }
+            renderOffersList();
         }
         
         function clearOfferFilters() {
             document.getElementById('offer-search-input').value = '';
             document.getElementById('offer-sort-select').value = 'savings_desc';
-            filterAndSortOffers();
+            renderOffersList();
         }
         
         function handleOfferRadioChange(e) {
