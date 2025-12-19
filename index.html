@@ -819,8 +819,19 @@
                     const key = type;
                     
                     if (winnerOffer.name !== 'Tu Tarifa Actual') {
-                        // Verificar si esta oferta ya está en el array (por nombre)
-                        const alreadyExists = winningOffers[key].some(o => o.name === winnerOffer.name);
+                        // Crear un identificador único basado en los precios (no solo el nombre)
+                        // Esto permite diferenciar ofertas con el mismo nombre pero diferentes precios
+                        const offerSignature = type === '2.0TD' 
+                            ? `${winnerOffer.name}_${winnerOffer.p1_price}_${winnerOffer.p2_price}_${winnerOffer.p3_price}`
+                            : `${winnerOffer.name}_${winnerOffer.p1_price}_${winnerOffer.p2_price}_${winnerOffer.p3_price}_${winnerOffer.p4_price}`;
+                        
+                        // Verificar si esta oferta ya está (por firma única)
+                        const alreadyExists = winningOffers[key].some(o => {
+                            const existingSignature = type === '2.0TD'
+                                ? `${o.name}_${o.p1_price}_${o.p2_price}_${o.p3_price}`
+                                : `${o.name}_${o.p1_price}_${o.p2_price}_${o.p3_price}_${o.p4_price}`;
+                            return existingSignature === offerSignature;
+                        });
                         
                         if (!alreadyExists) {
                             winningOffers[key].push({
@@ -3586,6 +3597,7 @@
                 // Contexto MultiCups: Necesitamos TODOS los datos de lastComparisonResult
                 // pero con la OFERTA seleccionada manualmente
                 console.log('MultiCups context detected');
+                console.log('lastComparisonResult tariffType:', lastComparisonResult._multiCupsContext.tariffType);
                 
                 // Crear un nuevo objeto combinando lastComparisonResult (datos base) 
                 // con la oferta elegida manualmente
@@ -3602,7 +3614,21 @@
                     isNegativeSavings: result.isNegativeSavings || false
                 };
                 
+                // Para 3.0TD, asegurar que los consumos p1-p6 están copiados
+                if (lastComparisonResult._multiCupsContext.tariffType === '3.0TD') {
+                    for (let i = 1; i <= 6; i++) {
+                        if (lastComparisonResult[`consumo_p${i}`] !== undefined) {
+                            combinedResult[`consumo_p${i}`] = lastComparisonResult[`consumo_p${i}`];
+                        }
+                        if (lastComparisonResult[`potencia_p${i}_kw`] !== undefined) {
+                            combinedResult[`potencia_p${i}_kw`] = lastComparisonResult[`potencia_p${i}_kw`];
+                        }
+                    }
+                }
+                
                 console.log('Combined result:', combinedResult);
+                console.log('Combined result savings:', combinedResult.savings);
+                console.log('Combined result offer:', combinedResult.offer.name);
                 
                 addSupplyToMultiCupsList(combinedResult);
             } else {
