@@ -217,35 +217,6 @@
                     </div>
                 </div>
                 
-                <!-- Nueva sección: Tipo de Selección de Oferta -->
-                <div id="offer-selection-type-container" class="mb-6 pt-4 border-t border-slate-200 hidden">
-                    <p class="text-sm font-bold text-drk-800 mb-3 text-center uppercase tracking-wider">TIPO DE SELECCIÓN</p>
-                    <div class="flex flex-col gap-3">
-                        <!-- Opción 1: Mejor Opción (por defecto) -->
-                        <label class="offer-type-selector cursor-pointer">
-                            <input type="radio" name="offer_selection_type" value="best_option" class="hidden" checked>
-                            <div class="flex items-start gap-3 p-4 rounded-xl border-2 border-drk-500 bg-drk-500 text-white transition hover:bg-drk-600">
-                                <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <div>
-                                    <p class="font-bold text-base mb-1">🏆 MEJOR OPCIÓN</p>
-                                    <p class="text-sm opacity-90">Muestra automáticamente la oferta con mayor ahorro</p>
-                                </div>
-                            </div>
-                        </label>
-                        
-                        <!-- Opción 2: Elegir de resultados positivos -->
-                        <label class="offer-type-selector cursor-pointer">
-                            <input type="radio" name="offer_selection_type" value="choose_from_positive" class="hidden">
-                            <div class="flex items-start gap-3 p-4 rounded-xl border-2 border-slate-300 bg-white text-slate-700 transition hover:bg-slate-50 hover:border-drk-400">
-                                <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-                                <div>
-                                    <p class="font-bold text-base mb-1">📋 ELEGIR DE LOS RESULTADOS</p>
-                                    <p class="text-sm opacity-75">Después del cálculo, elige manualmente la oferta que prefieras</p>
-                                </div>
-                            </div>
-                        </label>
-                    </div>
-                </div>
                 
                 <!-- Tariff Selection Buttons -->
                 <div class="w-full space-y-4">
@@ -595,6 +566,58 @@
             </div>
         </div>
 
+        <!-- 9.8. Modal de Decisión (Mejor Opción vs Elegir) -->
+        <div id="offer-decision-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
+                <!-- Header -->
+                <div class="bg-gradient-to-r from-drk-600 to-drk-700 p-6 text-white">
+                    <h3 class="text-2xl font-black">✅ Cálculo Completado</h3>
+                    <p class="text-drk-100 text-sm mt-1">Hemos encontrado ofertas con ahorro. ¿Cómo quieres continuar?</p>
+                </div>
+                
+                <!-- Content -->
+                <div class="p-6">
+                    <div class="flex flex-col gap-4">
+                        <!-- Opción 1: Mejor Opción -->
+                        <button onclick="selectBestOptionDirect()" class="text-left p-6 rounded-xl border-2 border-slate-300 bg-white hover:border-drk-500 hover:bg-drk-50 transition group">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 group-hover:bg-yellow-200">
+                                    🏆
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-black text-lg text-slate-900 mb-2">VER MEJOR OPCIÓN</p>
+                                    <p class="text-sm text-slate-600">Muestra automáticamente la oferta con mayor ahorro y genera la comparativa</p>
+                                </div>
+                                <svg class="w-6 h-6 text-slate-400 group-hover:text-drk-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </div>
+                        </button>
+                        
+                        <!-- Opción 2: Elegir Manual -->
+                        <button onclick="selectFromResults()" class="text-left p-6 rounded-xl border-2 border-slate-300 bg-white hover:border-drk-500 hover:bg-drk-50 transition group">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200">
+                                    📋
+                                </div>
+                                <div class="flex-1">
+                                    <p class="font-black text-lg text-slate-900 mb-2">ELEGIR ENTRE RESULTADOS</p>
+                                    <p class="text-sm text-slate-600">Revisa todas las ofertas con ahorro positivo y elige la que prefieras</p>
+                                </div>
+                                <svg class="w-6 h-6 text-slate-400 group-hover:text-drk-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <!-- Info adicional -->
+                    <div class="mt-6 p-4 bg-slate-50 rounded-lg">
+                        <p class="text-xs text-slate-600">
+                            💡 <strong>Consejo:</strong> Si quieres ver rápidamente la mejor oferta, elige la primera opción. 
+                            Si necesitas comparar varias opciones o el cliente tiene preferencias específicas, elige la segunda.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 9.9. Modal de Selección de Oferta -->
         <div id="offer-selection-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
             <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -705,7 +728,6 @@
         let qrCodeInstance = null; // Instancia de QRCode.js
         
         // Nuevas variables para selección avanzada de ofertas
-        let offerSelectionType = 'best_option'; // 'best_option' o 'choose_from_positive'
         let availableOffers = []; // Array de todas las ofertas con ahorro positivo
         let manuallySelectedOffer = null; // Oferta seleccionada manualmente
 
@@ -1143,9 +1165,6 @@
                 document.getElementById('landing-view').classList.add('hidden');
                 document.getElementById('initial-view').classList.remove('hidden');
                 
-                // Mostrar sección de tipo de selección de oferta
-                document.getElementById('offer-selection-type-container').classList.remove('hidden');
-                
                 // Cargar tarifas al seleccionar tipo
                 fetchTariffsFromSheet(currentTariffType);
 
@@ -1404,16 +1423,15 @@
                 lastComparisonResult = final;
                 lastComparisonResult.isMulti = false;
                 
-                console.log('Checking offer selection type...');
+                console.log('Checking available offers...');
                 
-                // Si el modo es "elegir de resultados" y hay ofertas disponibles, mostrar modal
-                if (offerSelectionType === 'choose_from_positive' && availableOffers.length > 0) {
-                    document.getElementById('loading-status').classList.add('hidden');
-                    showOfferSelectionModal(final.cups);
-                    return; // No mostrar resultados todavía
+                // NUEVA LÓGICA: Si hay ofertas con ahorro, mostrar modal de decisión
+                if (availableOffers.length > 0 && final.savings > 0) {
+                    showOfferDecisionModal();
+                    return; // No mostrar resultados todavía, esperar decisión del usuario
                 }
                 
-                // Modo normal: mostrar resultados directamente
+                // Si no hay ahorro, mostrar resultados directamente
                 console.log('About to render UI...');
                 renderResultsUI(final);
                 
@@ -1443,7 +1461,6 @@
             document.getElementById('app-subtitle').textContent = TARIFF_CONFIG.MULTICUPS.label;
             
             // Mostrar sección de tipo de selección de oferta
-            document.getElementById('offer-selection-type-container').classList.remove('hidden');
 
             updateMultiCupsSagaView();
         }
@@ -3206,6 +3223,49 @@
             });
         }
         
+        // --- NUEVO: Modal de Decisión (Mejor vs Elegir) ---
+        
+        function showOfferDecisionModal() {
+            document.getElementById('loading-status').classList.add('hidden');
+            document.getElementById('offer-decision-modal').classList.remove('hidden');
+            document.getElementById('offer-decision-modal').classList.add('flex');
+        }
+        
+        function closeOfferDecisionModal() {
+            document.getElementById('offer-decision-modal').classList.add('hidden');
+            document.getElementById('offer-decision-modal').classList.remove('flex');
+        }
+        
+        function selectBestOptionDirect() {
+            // Cerrar modal de decisión
+            closeOfferDecisionModal();
+            
+            // Usar el resultado que ya estaba calculado (lastComparisonResult)
+            if (!lastComparisonResult) {
+                window.showErrorModal('No hay resultado disponible');
+                return;
+            }
+            
+            // Mostrar resultados directamente
+            renderResultsUI(lastComparisonResult);
+            document.getElementById('initial-view').classList.add('hidden');
+            document.getElementById('scanner-view').classList.add('hidden');
+            document.getElementById('results-view').classList.remove('hidden');
+            document.getElementById('results-view').classList.add('animate-fade-in-up');
+        }
+        
+        function selectFromResults() {
+            // Cerrar modal de decisión
+            closeOfferDecisionModal();
+            
+            // Mostrar modal de selección de ofertas
+            if (lastComparisonResult && availableOffers.length > 0) {
+                showOfferSelectionModal(lastComparisonResult.cups);
+            } else {
+                window.showErrorModal('No hay ofertas disponibles para seleccionar');
+            }
+        }
+        
         // Funciones para el modal de selección de ofertas
         function showOfferSelectionModal(cups) {
             // Mostrar CUPS en el modal
@@ -3397,11 +3457,6 @@
                 r.addEventListener('change', (e) => updateComparisonMode(e.target.value));
             });
             
-            // Event listeners para tipo de selección de oferta
-            document.querySelectorAll('input[name="offer_selection_type"]').forEach(r => {
-                r.addEventListener('change', (e) => updateOfferSelectionType(e.target.value));
-            });
-            
             // Event listener para botón de confirmar selección de oferta
             document.getElementById('confirm-offer-selection-btn').addEventListener('click', confirmOfferSelection);
             
@@ -3409,12 +3464,6 @@
             const initialModeInput = document.querySelector('input[name="comparison_mode"]:checked');
             if (initialModeInput) {
                 updateComparisonMode(initialModeInput.value);
-            }
-            
-            // Disparar evento inicial para tipo de selección
-            const initialOfferType = document.querySelector('input[name="offer_selection_type"]:checked');
-            if (initialOfferType) {
-                updateOfferSelectionType(initialOfferType.value);
             }
         });
         
@@ -3748,16 +3797,11 @@
             // --- GUARDAR OFERTAS CON AHORRO POSITIVO PARA SELECCIÓN MANUAL ---
             availableOffers = allResults.filter(r => r.savings > 0 && r.totalAnnual < r.originalBillAnnual);
             
-            // Si el modo es "elegir de resultados", poblar el selector
-            if (offerSelectionType === 'choose_from_positive') {
-                populateOfferSelector();
-            }
-            
-            // --- LÓGICA DE SELECCIÓN INDIVIDUAL SEGÚN MODO Y TIPO DE SELECCIÓN ---
+            // --- LÓGICA DE SELECCIÓN INDIVIDUAL SEGÚN MODO DE COMPARACIÓN ---
             let brand = activeBrand;
             
-            // Si el modo es "elegir de resultados" y hay una oferta seleccionada manualmente, usarla
-            if (offerSelectionType === 'choose_from_positive' && manuallySelectedOffer) {
+            // Si hay una oferta seleccionada manualmente (desde el modal), usarla
+            if (manuallySelectedOffer) {
                 finalIndividualResult = manuallySelectedOffer;
                 
                 // Aplicar branding según la oferta seleccionada
@@ -3767,7 +3811,7 @@
                     brand = BRANDS.POWER_CUP;
                 }
             } else {
-                // Modo automático "mejor opción"
+                // Modo automático según el modo de comparación
                 if (comparisonMode === 'overall_best') {
                     // Modo POWER CUP: Buscar la mejor oferta absoluta (con o sin DRK)
                     finalIndividualResult = bestOverall;
