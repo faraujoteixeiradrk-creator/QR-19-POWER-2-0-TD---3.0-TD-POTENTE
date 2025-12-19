@@ -1962,9 +1962,17 @@
             const isPowerCupMode = comparisonMode === 'overall_best';
 
             // Determine the label for the price section
-            const priceSectionLabel = (isPowerCupMode && !hasDrkWinner) 
-                ? 'Precios de la Oferta Ganadora Consolidada (POWER CUP GLOBAL)' 
-                : 'Precios de la Oferta Consolidada';
+            let priceSectionLabel;
+            if (hasDrkWinner && comparisonMode !== 'overall_best') {
+                // Modo DRK con ofertas DRK
+                priceSectionLabel = 'Precios de las Ofertas Seleccionadas (DRK ENERGÍA)';
+            } else if (!hasDrkWinner && comparisonMode === 'overall_best') {
+                // Modo POWER CUP sin DRK
+                priceSectionLabel = 'Precios de las Ofertas Seleccionadas (POWER CUP GLOBAL)';
+            } else {
+                // Mixto o general
+                priceSectionLabel = 'Precios de las Ofertas Seleccionadas';
+            }
 
             const basePrefix = brand.NAME.includes('DRK') ? 'drk' : 'powercup';
             const color800 = brand.PRIMARY_TEXT.replace('text-', ''); // Get dynamic color: text-drk-800 -> drk-800
@@ -2987,9 +2995,14 @@
             // --- Precios de la Oferta Consolidada (Dynamic Winner) ---
             
             let preciosConsolidadosHTML = '';
-            const priceSectionHeader = dynamicBrand.NAME.includes('DRK')
-                ? 'PRECIOS DE LA OFERTA CONSOLIDADA (DRK ENERGÍA)'
-                : 'PRECIOS DE LA OFERTA GANADORA CONSOLIDADA (POWER CUP GLOBAL)';
+            let priceSectionHeader;
+            if (hasDrkWinner && comparisonMode !== 'overall_best') {
+                priceSectionHeader = 'PRECIOS DE LAS OFERTAS SELECCIONADAS (DRK ENERGÍA)';
+            } else if (!hasDrkWinner && comparisonMode === 'overall_best') {
+                priceSectionHeader = 'PRECIOS DE LAS OFERTAS SELECCIONADAS (POWER CUP GLOBAL)';
+            } else {
+                priceSectionHeader = 'PRECIOS DE LAS OFERTAS SELECCIONADAS';
+            }
 
             // 2.0TD Prices - TODAS las ofertas únicas
             const offers20 = winningOffers['2.0TD'];
