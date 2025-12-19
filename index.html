@@ -3406,7 +3406,10 @@
             const recalculatedEnergyCosts = [];
             const recalculatedPowerCosts = [];
             
-            console.log('Recalculating costs for tariff type:', tariffType);
+            console.log('=== RECALCULATE COSTS DEBUG ===');
+            console.log('Tariff type:', tariffType);
+            console.log('BaseData keys:', Object.keys(baseData));
+            console.log('SelectedOffer keys:', Object.keys(selectedOffer));
             
             if (tariffType === '2.0TD') {
                 // Calcular energía para 2.0TD (3 periodos)
@@ -3420,6 +3423,9 @@
                     selectedOffer.p2_price || 0,
                     selectedOffer.p3_price || 0
                 ];
+                
+                console.log('2.0TD Consumos:', consumos);
+                console.log('2.0TD Precios:', preciosEnergia);
                 
                 for (let i = 0; i < 3; i++) {
                     recalculatedEnergyCosts.push({
@@ -3450,10 +3456,13 @@
                     });
                 }
             } else if (tariffType === '3.0TD') {
+                console.log('=== 3.0TD DETAILED DEBUG ===');
+                
                 // Calcular energía para 3.0TD (6 periodos)
                 for (let i = 1; i <= 6; i++) {
                     const kwh = baseData[`consumo_p${i}`] || 0;
                     const price = selectedOffer[`p${i}_price`] || 0;
+                    console.log(`Period ${i}: kwh=${kwh}, price=${price}`);
                     recalculatedEnergyCosts.push({
                         period: i,
                         kwh: kwh,
@@ -3464,9 +3473,12 @@
                 
                 // Calcular potencia para 3.0TD (6 periodos)
                 const diasFacturados = baseData.dias_facturados || 30;
+                console.log('Días facturados:', diasFacturados);
+                
                 for (let i = 1; i <= 6; i++) {
                     const kw = baseData[`potencia_p${i}_kw`] || 0;
                     const priceDay = (selectedOffer[`p_potencia_${i}`] || 0) / 365;
+                    console.log(`Power P${i}: kw=${kw}, priceDay=${priceDay}`);
                     recalculatedPowerCosts.push({
                         period: i,
                         kw: kw,
@@ -3478,6 +3490,7 @@
             
             console.log('Recalculated energy costs periods:', recalculatedEnergyCosts.length);
             console.log('Recalculated power costs periods:', recalculatedPowerCosts.length);
+            console.log('=== END RECALCULATE DEBUG ===');
             
             return {
                 energyCosts: recalculatedEnergyCosts,
@@ -4291,15 +4304,13 @@
             }
             
             // Añadir directamente si solo hay 1 oferta o ninguna
-            multiCupsData.push(finalIndividualResult);
+            // IMPORTANTE: Usar addSupplyToMultiCupsList para que recalcule costes correctamente
+            addSupplyToMultiCupsList(finalIndividualResult);
             
-            // Actualizar UI y volver a la vista SAGA
-            document.getElementById('tariff-display-badge').textContent = multiCupsData.length;
-            
-            window.showMessageModal(`Suministro ${finalIndividualResult.cups} (${tariffType}) añadido. Total: ${multiCupsData.length}`, "Suministro Añadido");
-            
-            document.getElementById('initial-view').classList.add('hidden');
-            showMultiCupsSagaView();
+            // La función addSupplyToMultiCupsList ya actualiza la UI, pero como estamos
+            // en saveSupply, NO llamamos a showMultiCupsSagaView aquí
+            // (se llama dentro de addSupplyToMultiCupsList)
+            return; // Salir para no ejecutar código duplicado
         }
 
         // --- FETCH & PARSE (Actualizado para Múltiples Tarifas) ---
