@@ -3271,12 +3271,18 @@
                 return;
             }
             
-            // Mostrar resultados directamente
-            renderResultsUI(lastComparisonResult);
-            document.getElementById('initial-view').classList.add('hidden');
-            document.getElementById('scanner-view').classList.add('hidden');
-            document.getElementById('results-view').classList.remove('hidden');
-            document.getElementById('results-view').classList.add('animate-fade-in-up');
+            // Verificar si estamos en contexto MultiCups
+            if (lastComparisonResult._multiCupsContext) {
+                // Contexto MultiCups: Añadir a la lista
+                addSupplyToMultiCupsList(lastComparisonResult);
+            } else {
+                // Contexto individual: Mostrar resultados
+                renderResultsUI(lastComparisonResult);
+                document.getElementById('initial-view').classList.add('hidden');
+                document.getElementById('scanner-view').classList.add('hidden');
+                document.getElementById('results-view').classList.remove('hidden');
+                document.getElementById('results-view').classList.add('animate-fade-in-up');
+            }
         }
         
         function selectFromResults() {
@@ -3289,6 +3295,23 @@
             } else {
                 window.showErrorModal('No hay ofertas disponibles para seleccionar');
             }
+        }
+        
+        // Nueva función para añadir suministro a MultiCups después de elegir
+        function addSupplyToMultiCupsList(result) {
+            // Limpiar el contexto temporal
+            delete result._multiCupsContext;
+            
+            // Añadir a la lista
+            multiCupsData.push(result);
+            
+            // Actualizar UI y volver a la vista SAGA
+            document.getElementById('tariff-display-badge').textContent = multiCupsData.length;
+            
+            window.showMessageModal(`Suministro ${result.cups} añadido. Total: ${multiCupsData.length}`, "Suministro Añadido");
+            
+            document.getElementById('initial-view').classList.add('hidden');
+            showMultiCupsSagaView();
         }
         
         // Funciones para el modal de selección de ofertas
@@ -3392,28 +3415,47 @@
             
             console.log('Result offer:', result.offer.name);
             
-            // Aplicar branding
-            let brand = result.offer.isDrk ? BRANDS.DRK : BRANDS.POWER_CUP;
-            console.log('Applying brand:', brand.NAME);
-            applyBrandStyles(brand);
-            activeBrand = brand;
+            // Verificar si estamos en contexto MultiCups
+            const isMultiCupsContext = result._multiCupsContext || (lastComparisonResult && lastComparisonResult._multiCupsContext);
             
-            // Asignar como resultado final
-            lastComparisonResult = result;
-            lastComparisonResult.isMulti = false;
-            
-            console.log('About to render results UI');
-            // Mostrar resultados
-            renderResultsUI(result);
-            
-            console.log('Hiding initial-view and showing results-view');
-            document.getElementById('loading-status').classList.add('hidden');
-            document.getElementById('initial-view').classList.add('hidden');
-            document.getElementById('scanner-view').classList.add('hidden');
-            document.getElementById('results-view').classList.remove('hidden');
-            document.getElementById('results-view').classList.add('animate-fade-in-up');
-            
-            console.log('Done showing results');
+            if (isMultiCupsContext) {
+                // Contexto MultiCups: Añadir a la lista
+                console.log('MultiCups context detected, adding to list');
+                
+                // Si result no tiene el contexto pero lastComparisonResult sí, copiarlo
+                if (!result._multiCupsContext && lastComparisonResult._multiCupsContext) {
+                    result._multiCupsContext = lastComparisonResult._multiCupsContext;
+                    result.originalTariffType = lastComparisonResult._multiCupsContext.tariffType;
+                }
+                
+                addSupplyToMultiCupsList(result);
+            } else {
+                // Contexto individual: Mostrar resultados
+                console.log('Individual context, showing results');
+                
+                // Aplicar branding
+                let brand = result.offer.isDrk ? BRANDS.DRK : BRANDS.POWER_CUP;
+                console.log('Applying brand:', brand.NAME);
+                applyBrandStyles(brand);
+                activeBrand = brand;
+                
+                // Asignar como resultado final
+                lastComparisonResult = result;
+                lastComparisonResult.isMulti = false;
+                
+                console.log('About to render results UI');
+                // Mostrar resultados
+                renderResultsUI(result);
+                
+                console.log('Hiding initial-view and showing results-view');
+                document.getElementById('loading-status').classList.add('hidden');
+                document.getElementById('initial-view').classList.add('hidden');
+                document.getElementById('scanner-view').classList.add('hidden');
+                document.getElementById('results-view').classList.remove('hidden');
+                document.getElementById('results-view').classList.add('animate-fade-in-up');
+                
+                console.log('Done showing results');
+            }
         }
         
         function populateOfferSelector() {
@@ -3927,7 +3969,26 @@
                     finalIndividualResult[`potencia_p${i}_kw`] = dataForCalc[`potencia_p${i}_kw`] || 0;
                 }
             }
-
+            
+            // --- NUEVA LÓGICA: Modal de decisión en POWER CUP MultiCups ---
+            // Si es modo POWER CUP y hay más de 1 oferta, permitir elegir
+            if (comparisonMode === 'overall_best' && availableOffers.length > 1) {
+                console.log('POWER CUP MultiCups: Showing decision modal with', availableOffers.length, 'offers');
+                
+                // Guardar temporalmente el resultado para usarlo después
+                lastComparisonResult = finalIndividualResult;
+                lastComparisonResult.isMulti = false;
+                lastComparisonResult._multiCupsContext = {
+                    tariffType: tariffType,
+                    dataForCalc: dataForCalc
+                };
+                
+                // Mostrar modal de decisión
+                showOfferDecisionModal();
+                return; // No añadir todavía, esperar decisión del usuario
+            }
+            
+            // Añadir directamente si NO es POWER CUP o solo hay 1 oferta
             multiCupsData.push(finalIndividualResult);
             
             // Actualizar UI y volver a la vista SAGA
