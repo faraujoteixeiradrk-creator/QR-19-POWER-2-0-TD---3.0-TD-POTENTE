@@ -4137,20 +4137,38 @@
                 
                 if (!isManual6PeriodInput) {
                     // Si es QR o Input Manual simplificado (solo 3 consumos/2 potencias)
-                    // Heurística: Propagar las potencias P1 y P2 a los 6 periodos (P1->P1/P3/P5, P2->P2/P4/P6)
-                    // Los consumos E1/E2/E3 (Punta/Llano/Valle) van a P1/P2/P3, y el resto es cero.
+                    // IMPORTANTE: Para 3.0TD las facturas muestran solo Punta/Llano/Valle
+                    // pero la tarifa tiene 6 periodos de precios
                     
+                    // Potencias: Propagar P1 y P2 a los 6 periodos
+                    dataForCalc.potencia_p1_kw = p1_kw;
+                    dataForCalc.potencia_p2_kw = p2_kw;
                     dataForCalc.potencia_p3_kw = p1_kw;
                     dataForCalc.potencia_p4_kw = p2_kw;
                     dataForCalc.potencia_p5_kw = p1_kw;  
                     dataForCalc.potencia_p6_kw = p2_kw;  
                     
-                    dataForCalc.consumo_p1 = data.consumo_punta || 0; // E1 (Punta)
-                    dataForCalc.consumo_p2 = data.consumo_llano || 0; // E2 (Llano)
-                    dataForCalc.consumo_p3 = data.consumo_valle || 0; // E3 (Valle)
-                    dataForCalc.consumo_p4 = 0;
-                    dataForCalc.consumo_p5 = 0;
-                    dataForCalc.consumo_p6 = 0;
+                    // Consumos: Distribuir Punta/Llano/Valle entre los 6 periodos
+                    // Estrategia: Asignar cada consumo a 2 periodos (duplicar)
+                    const punta = data.consumo_punta || 0;
+                    const llano = data.consumo_llano || 0;
+                    const valle = data.consumo_valle || 0;
+                    
+                    // Distribución típica en tarifas 3.0TD:
+                    // P1, P4 = Punta (horas más caras)
+                    // P2, P5 = Llano (horas medias)
+                    // P3, P6 = Valle (horas más baratas)
+                    dataForCalc.consumo_p1 = punta / 2;  // Mitad de punta
+                    dataForCalc.consumo_p2 = llano / 2;  // Mitad de llano
+                    dataForCalc.consumo_p3 = valle / 2;  // Mitad de valle
+                    dataForCalc.consumo_p4 = punta / 2;  // Otra mitad de punta
+                    dataForCalc.consumo_p5 = llano / 2;  // Otra mitad de llano
+                    dataForCalc.consumo_p6 = valle / 2;  // Otra mitad de valle
+                    
+                    console.log('3.0TD QR Mode: Distributing consumptions across 6 periods');
+                    console.log('Original - Punta:', punta, 'Llano:', llano, 'Valle:', valle);
+                    console.log('Distributed - P1:', dataForCalc.consumo_p1, 'P2:', dataForCalc.consumo_p2, 'P3:', dataForCalc.consumo_p3);
+                    console.log('Distributed - P4:', dataForCalc.consumo_p4, 'P5:', dataForCalc.consumo_p5, 'P6:', dataForCalc.consumo_p6);
                     
                 } else {
                     // Es una entrada manual completa de 6 periodos
@@ -4275,14 +4293,26 @@
             applyBrandStyles(brand);
             
             // Ensure the correct tariff type used for calculation is stored
-            finalIndividualResult.originalTariffType = tariffType;  
+            finalIndividualResult.originalTariffType = tariffType;
+            
+            // Copiar datos base del suministro (CUPS, días facturados, importe, etc.)
+            finalIndividualResult.cups = data.cups || '';
+            finalIndividualResult.importe_total = data.importe_total || 0;
+            finalIndividualResult.dias_facturados = data.dias_facturados || 30;
 
-            // Copy back the 6-period power and consumption values in case they were generated (for 3.0TD/6.1TD)
+            // Copy back the 6-period power and consumption values in case they were generated (for 3.0TD)
             if (tariffType === '3.0TD') {
                 for (let i = 1; i <= 6; i++) {
                     finalIndividualResult[`consumo_p${i}`] = dataForCalc[`consumo_p${i}`] || 0;
                     finalIndividualResult[`potencia_p${i}_kw`] = dataForCalc[`potencia_p${i}_kw`] || 0;
                 }
+            } else if (tariffType === '2.0TD') {
+                // Para 2.0TD también copiar los datos
+                finalIndividualResult.consumo_punta = dataForCalc.consumo_punta || 0;
+                finalIndividualResult.consumo_llano = dataForCalc.consumo_llano || 0;
+                finalIndividualResult.consumo_valle = dataForCalc.consumo_valle || 0;
+                finalIndividualResult.potencia_p1_kw = dataForCalc.potencia_p1_kw || 0;
+                finalIndividualResult.potencia_p2_kw = dataForCalc.potencia_p2_kw || 0;
             }
             
             // --- NUEVA LÓGICA: Modal de decisión en MultiCups (TODOS LOS MODOS) ---
