@@ -1359,9 +1359,18 @@
                 // --- GUARDAR OFERTAS CON AHORRO POSITIVO ---
                 availableOffers = results.filter(r => {
                     r.savings = r.originalBillAnnual - r.totalAnnual;
-                    return r.savings > 0 && r.totalAnnual < r.originalBillAnnual;
+                    const hasPositiveSavings = r.savings > 0 && r.totalAnnual < r.originalBillAnnual;
+                    
+                    // Si modo es "DRK ÚNICAMENTE", filtrar solo ofertas DRK
+                    if (comparisonMode === 'drk_only') {
+                        return hasPositiveSavings && r.offer.isDrk;
+                    }
+                    
+                    // En otros modos, mostrar todas las ofertas con ahorro
+                    return hasPositiveSavings;
                 });
-                console.log('Available offers with savings:', availableOffers.length);
+                console.log('Available offers with savings (filtered by mode):', availableOffers.length);
+                console.log('Comparison mode:', comparisonMode);
                 
                 let final = bestOverall;
                 let brand = activeBrand;
@@ -3381,7 +3390,9 @@
             
             document.getElementById('loading-status').classList.add('hidden');
             document.getElementById('initial-view').classList.add('hidden');
-            document.getElementById('result-view').classList.remove('hidden');
+            document.getElementById('scanner-view').classList.add('hidden');
+            document.getElementById('results-view').classList.remove('hidden');
+            document.getElementById('results-view').classList.add('animate-fade-in-up');
         }
         
         function populateOfferSelector() {
@@ -3806,7 +3817,17 @@
             let finalIndividualResult = bestOverall;
             
             // --- GUARDAR OFERTAS CON AHORRO POSITIVO PARA SELECCIÓN MANUAL ---
-            availableOffers = allResults.filter(r => r.savings > 0 && r.totalAnnual < r.originalBillAnnual);
+            availableOffers = allResults.filter(r => {
+                const hasPositiveSavings = r.savings > 0 && r.totalAnnual < r.originalBillAnnual;
+                
+                // Si modo es "DRK ÚNICAMENTE", filtrar solo ofertas DRK
+                if (comparisonMode === 'drk_only') {
+                    return hasPositiveSavings && r.offer.isDrk;
+                }
+                
+                // En otros modos, mostrar todas las ofertas con ahorro
+                return hasPositiveSavings;
+            });
             
             // --- LÓGICA DE SELECCIÓN INDIVIDUAL SEGÚN MODO DE COMPARACIÓN ---
             let brand = activeBrand;
