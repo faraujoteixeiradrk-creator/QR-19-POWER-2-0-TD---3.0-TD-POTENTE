@@ -3537,11 +3537,20 @@
             
             console.log('Recalculated energy costs periods:', recalculatedEnergyCosts.length);
             console.log('Recalculated power costs periods:', recalculatedPowerCosts.length);
+            
+            // Calcular subtotales
+            const subPower = recalculatedPowerCosts.reduce((sum, p) => sum + p.cost, 0);
+            const subEnergyNet = recalculatedEnergyCosts.reduce((sum, e) => sum + e.cost, 0);
+            
+            console.log('Recalculated subPower:', subPower);
+            console.log('Recalculated subEnergyNet:', subEnergyNet);
             console.log('=== END RECALCULATE DEBUG ===');
             
             return {
                 energyCosts: recalculatedEnergyCosts,
-                powerCosts: recalculatedPowerCosts
+                powerCosts: recalculatedPowerCosts,
+                subPower: subPower,
+                subEnergyNet: subEnergyNet
             };
         }
         
@@ -3562,7 +3571,10 @@
                 const recalculated = recalculateCostsForOffer(result, result.offer);
                 result.energyCosts = recalculated.energyCosts;
                 result.powerCosts = recalculated.powerCosts;
+                result.subPower = recalculated.subPower;
+                result.subEnergyNet = recalculated.subEnergyNet;
                 console.log('Costs recalculated for', result.originalTariffType);
+                console.log('New subPower:', result.subPower, 'New subEnergyNet:', result.subEnergyNet);
             }
             
             // Limpiar el contexto temporal
@@ -3781,8 +3793,8 @@
                     savings: result.savings,          // Ahorro de la oferta elegida
                     energyCosts: recalculated.energyCosts,  // Desglose RECALCULADO de energía
                     powerCosts: recalculated.powerCosts,    // Desglose RECALCULADO de potencia
-                    subPower: result.subPower,
-                    subEnergyNet: result.subEnergyNet,
+                    subPower: recalculated.subPower,        // Subtotal RECALCULADO de potencia
+                    subEnergyNet: recalculated.subEnergyNet, // Subtotal RECALCULADO de energía
                     isNegativeSavings: result.isNegativeSavings || false
                 };
                 
