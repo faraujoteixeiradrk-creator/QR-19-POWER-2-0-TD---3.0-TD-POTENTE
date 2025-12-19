@@ -745,10 +745,10 @@
         const num = (n, d=2) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n || 0);
         const numPriceFormula = (n) => new Intl.NumberFormat('es-ES', { minimumFractionDigits: 6, maximumFractionDigits: 6 }).format(n || 0);
 
-        // Función para obtener las ofertas GANADORAS (no necesariamente DRK) consolidadas por tipo.
+        // Función para obtener TODAS las ofertas únicas usadas en los resultados
         function getWinningOffersPerType(results) {
-            // Eliminamos la entrada '6.1TD' del objeto de resultados esperados
-            const winningOffers = { '2.0TD': null, '3.0TD': null };
+            // Cambio: Ahora guardamos arrays de ofertas únicas
+            const winningOffers = { '2.0TD': [], '3.0TD': [] };
             let hasDrkWinner = false;
             
             results.forEach(resItem => {
@@ -760,22 +760,23 @@
                     hasDrkWinner = true;
                 }
 
-                // Collect the winning offer for this type
+                // Collect ALL unique winning offers for this type
                 if (type === '2.0TD' || type === '3.0TD') {
-                    // Simplificamos la clave, ya no necesitamos la lógica para 6.1TD
-                    const key = type; 
+                    const key = type;
                     
-                    // We prioritize the lowest cost winner for the header, regardless of name, unless it's 'Tu Tarifa Actual'
-                    if (winnerOffer.name !== 'Tu Tarifa Actual' && (!winningOffers[key] || resItem.totalAnnual < winningOffers[key].totalAnnual)) {
-                        winningOffers[key] = {
-                            ...winnerOffer,
-                            totalAnnual: resItem.totalAnnual // Store the actual calculated annual cost
-                        };
+                    if (winnerOffer.name !== 'Tu Tarifa Actual') {
+                        // Verificar si esta oferta ya está en el array (por nombre)
+                        const alreadyExists = winningOffers[key].some(o => o.name === winnerOffer.name);
+                        
+                        if (!alreadyExists) {
+                            winningOffers[key].push({
+                                ...winnerOffer,
+                                totalAnnual: resItem.totalAnnual
+                            });
+                        }
                     }
                 }
             });
-            
-            // Ya no hay fallback para 6.1TD
 
             return { winningOffers, hasDrkWinner };
         }
@@ -1914,59 +1915,62 @@
             const basePrefix = brand.NAME.includes('DRK') ? 'drk' : 'powercup';
             const color800 = brand.PRIMARY_TEXT.replace('text-', ''); // Get dynamic color: text-drk-800 -> drk-800
 
-            // Add 2.0TD Prices (P1-P2, E1-E3)
-            const offer20 = winningOffers['2.0TD'];
+            // Add 2.0TD Prices - TODAS las ofertas únicas
+            const offers20 = winningOffers['2.0TD'];
             const has20TD = individualResults.some(d => d.originalTariffType === '2.0TD');
-            if (offer20 && has20TD && offer20.name !== 'Tu Tarifa Actual') {
-                const fullTariffName20 = `${offer20.name || 'Tarifa 2.0TD'} - ${offer20.description || 'N/A'}`;
-                
-                const p1 = offer20.p_potencia_1 / 365;
-                const p2 = offer20.p_potencia_2 / 365;
-                const e1 = offer20.p1_price;
-                const e2 = offer20.p2_price;
-                const e3 = offer20.p3_price;
+            if (offers20 && offers20.length > 0 && has20TD) {
+                offers20.forEach((offer20, index) => {
+                    const fullTariffName20 = `${offer20.name || 'Tarifa 2.0TD'} - ${offer20.description || 'N/A'}`;
+                    
+                    const p1 = offer20.p_potencia_1 / 365;
+                    const p2 = offer20.p_potencia_2 / 365;
+                    const e1 = offer20.p1_price;
+                    const e2 = offer20.p2_price;
+                    const e3 = offer20.p3_price;
 
-                consolidatedPrices.push(`
-                    <div class="mb-4 p-3 bg-white rounded-lg border border-${basePrefix}-100">
-                        <h5 class="font-black text-sm text-${color800} border-b pb-1 mb-2">Tarifa 2.0 TD (Hogar/Negocio) - ${fullTariffName20}</h5>
-                        <div class="grid grid-cols-2 gap-x-4 text-xs">
-                            <p class="text-slate-500">P1 (€/kW/día):</p><p class="font-mono font-bold text-right">${numPriceFormula(p1)}</p>
-                            <p class="text-slate-500">P2 (€/kW/día):</p><p class="font-mono font-bold text-right">${numPriceFormula(p2)}</p>
-                            <p class="text-slate-500 mt-2 col-span-2 font-bold text-cta-green-600">ENERGÍA (€/kWh)</p>
-                            <p class="text-slate-500">E1 (Punta):</p><p class="font-mono font-bold text-right">${numPriceFormula(e1)}</p>
-                            <p class="text-slate-500">E2 (Llano):</p><p class="font-mono font-bold text-right">${numPriceFormula(e2)}</p>
-                            <p class="text-slate-500">E3 (Valle):</p><p class="font-mono font-bold text-right">${numPriceFormula(e3)}</p>
+                    consolidatedPrices.push(`
+                        <div class="mb-4 p-3 bg-white rounded-lg border border-${basePrefix}-100">
+                            <h5 class="font-black text-sm text-${color800} border-b pb-1 mb-2">Tarifa 2.0 TD #${index + 1} - ${fullTariffName20}</h5>
+                            <div class="grid grid-cols-2 gap-x-4 text-xs">
+                                <p class="text-slate-500">P1 (€/kW/día):</p><p class="font-mono font-bold text-right">${numPriceFormula(p1)}</p>
+                                <p class="text-slate-500">P2 (€/kW/día):</p><p class="font-mono font-bold text-right">${numPriceFormula(p2)}</p>
+                                <p class="text-slate-500 mt-2 col-span-2 font-bold text-cta-green-600">ENERGÍA (€/kWh)</p>
+                                <p class="text-slate-500">E1 (Punta):</p><p class="font-mono font-bold text-right">${numPriceFormula(e1)}</p>
+                                <p class="text-slate-500">E2 (Llano):</p><p class="font-mono font-bold text-right">${numPriceFormula(e2)}</p>
+                                <p class="text-slate-500">E3 (Valle):</p><p class="font-mono font-bold text-right">${numPriceFormula(e3)}</p>
+                            </div>
                         </div>
-                    </div>
-                `);
+                    `);
+                });
             }
 
-            // Add 3.0TD Prices (P1-P6, E1-E6)
-            const offer30 = winningOffers['3.0TD'];
+            // Add 3.0TD Prices - TODAS las ofertas únicas
+            const offers30 = winningOffers['3.0TD'];
             const has30TD = individualResults.some(d => d.originalTariffType === '3.0TD');
-            if (offer30 && has30TD && offer30.name !== 'Tu Tarifa Actual') {
-                let pRows = '';
-                for(let i=1; i<=6; i++) {
-                    pRows += `<p class="text-slate-500">P${i}:</p><p class="font-mono font-bold text-right">${numPriceFormula(offer30[`p_potencia_${i}`] / 365)}</p>`;
-                }
-                let eRows = '';
-                for(let i=1; i<=6; i++) {
-                    eRows += `<p class="text-slate-500">E${i}:</p><p class="font-mono font-bold text-right">${numPriceFormula(offer30[`p${i}_price`])}</p>`;
-                }
-                // Eliminamos la referencia a 6.1TD en el nombre
-                const fullTariffName30 = `${offer30.name || 'Tarifa 3.0TD'} - ${offer30.description || 'N/A'}`;
+            if (offers30 && offers30.length > 0 && has30TD) {
+                offers30.forEach((offer30, index) => {
+                    let pRows = '';
+                    for(let i=1; i<=6; i++) {
+                        pRows += `<p class="text-slate-500">P${i}:</p><p class="font-mono font-bold text-right">${numPriceFormula(offer30[`p_potencia_${i}`] / 365)}</p>`;
+                    }
+                    let eRows = '';
+                    for(let i=1; i<=6; i++) {
+                        eRows += `<p class="text-slate-500">E${i}:</p><p class="font-mono font-bold text-right">${numPriceFormula(offer30[`p${i}_price`])}</p>`;
+                    }
+                    const fullTariffName30 = `${offer30.name || 'Tarifa 3.0TD'} - ${offer30.description || 'N/A'}`;
 
-                consolidatedPrices.push(`
-                    <div class="mb-4 p-3 bg-white rounded-lg border border-${basePrefix}-100">
-                        <h5 class="font-black text-sm text-${color800} border-b pb-1 mb-2">Tarifa 3.0 TD (Industria/Gran Consumo) - ${fullTariffName30}</h5>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 text-xs">
-                            <div class="col-span-2 md:col-span-4 font-bold text-cta-red-500 mb-1">POTENCIA (€/kW/día)</div>
-                            ${pRows}
-                            <div class="col-span-2 md:col-span-4 font-bold text-cta-green-600 mt-2 mb-1 border-t pt-2">ENERGÍA (€/kWh)</div>
-                            ${eRows}
+                    consolidatedPrices.push(`
+                        <div class="mb-4 p-3 bg-white rounded-lg border border-${basePrefix}-100">
+                            <h5 class="font-black text-sm text-${color800} border-b pb-1 mb-2">Tarifa 3.0 TD #${index + 1} - ${fullTariffName30}</h5>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 text-xs">
+                                <div class="col-span-2 md:col-span-4 font-bold text-cta-red-500 mb-1">POTENCIA (€/kW/día)</div>
+                                ${pRows}
+                                <div class="col-span-2 md:col-span-4 font-bold text-cta-green-600 mt-2 mb-1 border-t pt-2">ENERGÍA (€/kWh)</div>
+                                ${eRows}
+                            </div>
                         </div>
-                    </div>
-                `);
+                    `);
+                });
             }
 
             if (consolidatedPrices.length > 0) {
@@ -2933,57 +2937,61 @@
                 ? 'PRECIOS DE LA OFERTA CONSOLIDADA (DRK ENERGÍA)'
                 : 'PRECIOS DE LA OFERTA GANADORA CONSOLIDADA (POWER CUP GLOBAL)';
 
-            // 2.0TD Prices
-            const offer20 = winningOffers['2.0TD'];
+            // 2.0TD Prices - TODAS las ofertas únicas
+            const offers20 = winningOffers['2.0TD'];
             const has20TD = individualResults.some(d => d.originalTariffType === '2.0TD');
-            if (offer20 && has20TD && offer20.name !== 'Tu Tarifa Actual') {
-                const fullTariffName20 = `${offer20.name || 'Tarifa 2.0TD'} - ${offer20.description || 'N/A'}`; 
-                const p1 = offer20.p_potencia_1 / 365;
-                const p2 = offer20.p_potencia_2 / 365;
-                const e1 = offer20.p1_price;
-                const e2 = offer20.p2_price;
-                const e3 = offer20.p3_price;
-                
-                preciosConsolidadosHTML += `
-                    <div style="margin-top: 15px; padding: 10px; background-color: #ffffff; border: 1px solid #ddd; border-radius: 6px;">
-                        <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 13px; color: ${D_PRIMARY_DARK};">Tarifa 2.0 TD (Hogar/Negocio) - ${fullTariffName20}</p>
-                        <table width="100%" cellpadding="0" cellspacing="0" style="font-family: Arial, sans-serif; font-size: 11px; table-layout: fixed;">
-                            <tr><td style="padding: 2px 0; width: 60%; color: #555;">P1 (€/kW/día):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: #333;">${numPriceFormula(p1)}</td></tr>
-                            <tr><td style="padding: 2px 0; color: #555;">P2 (€/kW/día):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: #333;">${numPriceFormula(p2)}</td></tr>
-                            <tr style="height: 5px;"><td colspan="2"></td></tr>
-                            <tr><td style="padding: 2px 0; font-weight: bold; color: ${GREEN_SAVE};">ENERGÍA E1 (Punta - €/kWh):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: ${GREEN_SAVE};">${numPriceFormula(e1)}</td></tr>
-                            <tr><td style="padding: 2px 0; font-weight: bold; color: ${GREEN_SAVE};">ENERGÍA E2 (Llano - €/kWh):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: ${GREEN_SAVE};">${numPriceFormula(e2)}</td></tr>
-                            <tr><td style="padding: 2px 0; font-weight: bold; color: ${GREEN_SAVE};">ENERGÍA E3 (Valle - €/kWh):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: ${GREEN_SAVE};">${numPriceFormula(e3)}</td></tr>
-                        </table>
-                    </div>
-                `;
+            if (offers20 && offers20.length > 0 && has20TD) {
+                offers20.forEach((offer20, index) => {
+                    const fullTariffName20 = `${offer20.name || 'Tarifa 2.0TD'} - ${offer20.description || 'N/A'}`; 
+                    const p1 = offer20.p_potencia_1 / 365;
+                    const p2 = offer20.p_potencia_2 / 365;
+                    const e1 = offer20.p1_price;
+                    const e2 = offer20.p2_price;
+                    const e3 = offer20.p3_price;
+                    
+                    preciosConsolidadosHTML += `
+                        <div style="margin-top: 15px; padding: 10px; background-color: #ffffff; border: 1px solid #ddd; border-radius: 6px;">
+                            <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 13px; color: ${D_PRIMARY_DARK};">Tarifa 2.0 TD #${index + 1} - ${fullTariffName20}</p>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="font-family: Arial, sans-serif; font-size: 11px; table-layout: fixed;">
+                                <tr><td style="padding: 2px 0; width: 60%; color: #555;">P1 (€/kW/día):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: #333;">${numPriceFormula(p1)}</td></tr>
+                                <tr><td style="padding: 2px 0; color: #555;">P2 (€/kW/día):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: #333;">${numPriceFormula(p2)}</td></tr>
+                                <tr style="height: 5px;"><td colspan="2"></td></tr>
+                                <tr><td style="padding: 2px 0; font-weight: bold; color: ${GREEN_SAVE};">ENERGÍA E1 (Punta - €/kWh):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: ${GREEN_SAVE};">${numPriceFormula(e1)}</td></tr>
+                                <tr><td style="padding: 2px 0; font-weight: bold; color: ${GREEN_SAVE};">ENERGÍA E2 (Llano - €/kWh):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: ${GREEN_SAVE};">${numPriceFormula(e2)}</td></tr>
+                                <tr><td style="padding: 2px 0; font-weight: bold; color: ${GREEN_SAVE};">ENERGÍA E3 (Valle - €/kWh):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: ${GREEN_SAVE};">${numPriceFormula(e3)}</td></tr>
+                            </table>
+                        </div>
+                    `;
+                });
             }
 
-            // 3.0TD Prices (P1-P6, E1-E6)
-            const offer30 = winningOffers['3.0TD'];
-            const has30TD = individualResults.some(d => d.originalTariffType === '3.0TD'); // Solo miramos 3.0TD
-            if (offer30 && has30TD && offer30.name !== 'Tu Tarifa Actual') {
-                let pRows = '';
-                for(let i=1; i<=6; i++) {
-                    pRows += `<tr><td style="padding: 2px 0; color: #555;">P${i} (€/kW/día):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: #333;">${numPriceFormula(offer30[`p_potencia_${i}`] / 365)}</td></tr>`;
-                }
-                let eRows = '';
-                for(let i=1; i<=6; i++) {
-                    eRows += `<tr><td style="padding: 2px 0; font-weight: bold; color: ${GREEN_SAVE};">E${i} (€/kWh):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: ${GREEN_SAVE};">${numPriceFormula(offer30[`p${i}_price`])}</p></td></tr>`;
-                }
-                const fullTariffName30 = `${offer30.name || 'Tarifa 3.0TD'} - ${offer30.description || 'N/A'}`; // Quitamos 6.1TD del título
+            // 3.0TD Prices - TODAS las ofertas únicas  
+            const offers30 = winningOffers['3.0TD'];
+            const has30TD = individualResults.some(d => d.originalTariffType === '3.0TD');
+            if (offers30 && offers30.length > 0 && has30TD) {
+                offers30.forEach((offer30, index) => {
+                    let pRows = '';
+                    for(let i=1; i<=6; i++) {
+                        pRows += `<tr><td style="padding: 2px 0; color: #555;">P${i} (€/kW/día):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: #333;">${numPriceFormula(offer30[`p_potencia_${i}`] / 365)}</td></tr>`;
+                    }
+                    let eRows = '';
+                    for(let i=1; i<=6; i++) {
+                        eRows += `<tr><td style="padding: 2px 0; font-weight: bold; color: ${GREEN_SAVE};">E${i} (€/kWh):</td><td style="text-align: right; font-weight: bold; font-family: monospace; color: ${GREEN_SAVE};">${numPriceFormula(offer30[`p${i}_price`])}</p></td></tr>`;
+                    }
+                    const fullTariffName30 = `${offer30.name || 'Tarifa 3.0TD'} - ${offer30.description || 'N/A'}`;
 
-                preciosConsolidadosHTML += `
-                    <div style="margin-top: 15px; padding: 10px; background-color: #ffffff; border: 1px solid #ddd; border-radius: 6px;">
-                        <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 13px; color: ${D_PRIMARY_DARK};">Tarifa 3.0 TD (Industria/Gran Consumo) - ${fullTariffName30}</p>
-                        <table width="100%" cellpadding="0" cellspacing="0" style="font-family: Arial, sans-serif; font-size: 11px; table-layout: fixed;">
-                            <tr><td colspan="2" style="font-weight: bold; color: ${RED_CTA}; padding: 5px 0 2px 0;">POTENCIA</td></tr>
-                            ${pRows}
-                            <tr><td colspan="2" style="font-weight: bold; color: ${GREEN_SAVE}; padding: 5px 0 2px 0; border-top: 1px dashed #ccc; margin-top: 5px;">ENERGÍA</td></tr>
-                            ${eRows}
-                        </table>
-                    </div>
-                `;
+                    preciosConsolidadosHTML += `
+                        <div style="margin-top: 15px; padding: 10px; background-color: #ffffff; border: 1px solid #ddd; border-radius: 6px;">
+                            <p style="margin: 0 0 5px 0; font-weight: bold; font-size: 13px; color: ${D_PRIMARY_DARK};">Tarifa 3.0 TD #${index + 1} - ${fullTariffName30}</p>
+                            <table width="100%" cellpadding="0" cellspacing="0" style="font-family: Arial, sans-serif; font-size: 11px; table-layout: fixed;">
+                                <tr><td colspan="2" style="font-weight: bold; color: ${RED_CTA}; padding: 5px 0 2px 0;">POTENCIA</td></tr>
+                                ${pRows}
+                                <tr><td colspan="2" style="font-weight: bold; color: ${GREEN_SAVE}; padding: 5px 0 2px 0; border-top: 1px dashed #ccc; margin-top: 5px;">ENERGÍA</td></tr>
+                                ${eRows}
+                            </table>
+                        </div>
+                    `;
+                });
             }
             
             const preciosResumenSection = preciosConsolidadosHTML ? `
