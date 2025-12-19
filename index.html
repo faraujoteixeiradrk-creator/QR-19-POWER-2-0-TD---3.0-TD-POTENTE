@@ -3359,25 +3359,37 @@
         function closeOfferSelectionModal() {
             document.getElementById('offer-selection-modal').classList.add('hidden');
             document.getElementById('offer-selection-modal').classList.remove('flex');
-            manuallySelectedOffer = null;
+            // NO limpiar manuallySelectedOffer aquí, se limpiará después de usarlo
         }
         
         function confirmOfferSelection() {
             if (!manuallySelectedOffer) return;
             
             // Cerrar modal
-            closeOfferSelectionModal();
+            document.getElementById('offer-selection-modal').classList.add('hidden');
+            document.getElementById('offer-selection-modal').classList.remove('flex');
             
             // Continuar con el flujo normal mostrando el resultado
             continueWithSelectedOffer();
         }
         
         function continueWithSelectedOffer() {
+            console.log('continueWithSelectedOffer called');
+            console.log('manuallySelectedOffer:', manuallySelectedOffer);
+            
             // Usar la oferta seleccionada manualmente y mostrar resultados
             const result = manuallySelectedOffer;
             
+            if (!result) {
+                console.error('No result available!');
+                return;
+            }
+            
+            console.log('Result offer:', result.offer.name);
+            
             // Aplicar branding
             let brand = result.offer.isDrk ? BRANDS.DRK : BRANDS.POWER_CUP;
+            console.log('Applying brand:', brand.NAME);
             applyBrandStyles(brand);
             activeBrand = brand;
             
@@ -3385,14 +3397,18 @@
             lastComparisonResult = result;
             lastComparisonResult.isMulti = false;
             
+            console.log('About to render results UI');
             // Mostrar resultados
             renderResultsUI(result);
             
+            console.log('Hiding initial-view and showing results-view');
             document.getElementById('loading-status').classList.add('hidden');
             document.getElementById('initial-view').classList.add('hidden');
             document.getElementById('scanner-view').classList.add('hidden');
             document.getElementById('results-view').classList.remove('hidden');
             document.getElementById('results-view').classList.add('animate-fade-in-up');
+            
+            console.log('Done showing results');
         }
         
         function populateOfferSelector() {
