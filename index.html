@@ -3836,7 +3836,7 @@
             let finalIndividualResult = bestOverall;
             
             // --- GUARDAR OFERTAS CON AHORRO POSITIVO PARA SELECCIÓN MANUAL ---
-            availableOffers = allResults.filter(r => {
+            availableOffers = results.filter(r => {
                 const hasPositiveSavings = r.savings > 0 && r.totalAnnual < r.originalBillAnnual;
                 
                 // Si modo es "DRK ÚNICAMENTE", filtrar solo ofertas DRK
